@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/patriceckhart/zot/pkg/zotext"
+	"github.com/patriceckhart/zot/packages/agent/ext"
 )
 
 type config struct {
@@ -71,45 +71,45 @@ func playSound() {
 
 const panelID = "notifier-settings"
 
-func renderPanel(ext *zotext.Extension) {
+func renderPanel(e *ext.Extension) {
 	var toggle string
 	if isEnabled() {
 		toggle = "  [enter] Sound: on"
 	} else {
 		toggle = "  [enter] Sound: off"
 	}
-	ext.RenderPanel(panelID, "Notifier", []string{toggle}, "enter: toggle · esc: close")
+	e.RenderPanel(panelID, "Notifier", []string{toggle}, "enter: toggle · esc: close")
 }
 
 func main() {
 	loadConfig()
 
-	ext := zotext.New("notifier", "1.0.0")
+	e := ext.New("notifier", "1.0.0")
 
 	// Only play when the model actually finished a reply (final summary).
 	// Skip tool_use turns (intermediate), errors, and user aborts.
-	ext.On("turn_end", func(ev zotext.Event) {
+	e.On("turn_end", func(ev ext.Event) {
 		if ev.Stop != "end" {
 			return
 		}
 		playSound()
 	})
 
-	ext.OnPanelKey(panelID, func(key, text string) {
+	e.OnPanelKey(panelID, func(key, text string) {
 		if key == "enter" {
 			setEnabled(!isEnabled())
-			renderPanel(ext)
+			renderPanel(e)
 		}
 	}, func() {
 		// panel closed — nothing to clean up
 	})
 
-	ext.Command("notifier", "configure notification sound", func(args string) zotext.Response {
-		return zotext.OpenPanel(panelID, "Notifier", panelLines(), "enter: toggle · esc: close")
+	e.Command("notifier", "configure notification sound", func(args string) ext.Response {
+		return ext.OpenPanel(panelID, "Notifier", panelLines(), "enter: toggle · esc: close")
 	})
 
-	if err := ext.Run(); err != nil {
-		ext.Logf("fatal: %v", err)
+	if err := e.Run(); err != nil {
+		e.Logf("fatal: %v", err)
 	}
 }
 
