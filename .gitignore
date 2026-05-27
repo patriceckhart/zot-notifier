@@ -1,0 +1,4 @@
+/notifier
+*.test
+*.out
+.DS_Store

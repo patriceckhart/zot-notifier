@@ -1,7 +1,8 @@
 {
   "name": "notifier",
   "version": "1.0.0",
-  "exec": "./notifier",
+  "exec": "go",
+  "args": ["run", "."],
   "language": "go",
   "description": "Play a notification sound when a turn ends, configurable via /notifier.",
   "enabled": true
