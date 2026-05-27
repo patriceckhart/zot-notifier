@@ -19,15 +19,24 @@ var (
 	cfgMu sync.Mutex
 )
 
-func configPath() string {
-	exe, _ := os.Executable()
-	return filepath.Join(filepath.Dir(exe), "config.json")
+// extDir returns the directory the extension was launched from.
+// zot sets cmd.Dir = ext.Dir before exec, so os.Getwd() gives us the
+// extension folder regardless of whether we run from a committed
+// binary, `go run .`, or any other launcher.
+//
+// We deliberately do NOT use os.Executable(): with `go run .` that
+// points at a temp build dir under $GOCACHE, which breaks both
+// config persistence and the path to ding.mp3.
+func extDir() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "."
+	}
+	return wd
 }
 
-func soundPath() string {
-	exe, _ := os.Executable()
-	return filepath.Join(filepath.Dir(exe), "ding.mp3")
-}
+func configPath() string { return filepath.Join(extDir(), "config.json") }
+func soundPath() string  { return filepath.Join(extDir(), "ding.mp3") }
 
 func loadConfig() {
 	cfgMu.Lock()
@@ -62,11 +71,24 @@ func setEnabled(v bool) {
 	saveConfig()
 }
 
-func playSound() {
+func playSound(e *ext.Extension) {
 	if !isEnabled() {
 		return
 	}
-	_ = exec.Command("afplay", soundPath()).Start()
+	sp := soundPath()
+	// Log if the sound file is missing or afplay fails so we get a
+	// hint in `zot ext logs notifier` instead of silent nothing.
+	if _, err := os.Stat(sp); err != nil {
+		e.Logf("sound file missing: %s (%v)", sp, err)
+		return
+	}
+	cmd := exec.Command("afplay", sp)
+	if err := cmd.Start(); err != nil {
+		e.Logf("afplay failed to start: %v", err)
+		return
+	}
+	// Reap the child in the background so we don't leak zombies.
+	go func() { _ = cmd.Wait() }()
 }
 
 const panelID = "notifier-settings"
@@ -92,7 +114,7 @@ func main() {
 		if ev.Stop != "end" {
 			return
 		}
-		playSound()
+		playSound(e)
 	})
 
 	e.OnPanelKey(panelID, func(key, text string) {
