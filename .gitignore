@@ -1,4 +1,5 @@
 /notifier
+/zot-notifier
 *.test
 *.out
 .DS_Store
