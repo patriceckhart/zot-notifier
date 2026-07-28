@@ -71,6 +71,10 @@ func setEnabled(v bool) {
 	saveConfig()
 }
 
+func shouldNotify(ev ext.Event) bool {
+	return ev.Name == "tool_confirmation_requested" || (ev.Name == "turn_end" && ev.Stop == "end")
+}
+
 func playSound(e *ext.Extension) {
 	if !isEnabled() {
 		return
@@ -106,16 +110,17 @@ func renderPanel(e *ext.Extension) {
 func main() {
 	loadConfig()
 
-	e := ext.New("notifier", "1.0.0")
+	e := ext.New("notifier", "1.1.0")
 
-	// Only play when the model actually finished a reply (final summary).
-	// Skip tool_use turns (intermediate), errors, and user aborts.
-	e.On("turn_end", func(ev ext.Event) {
-		if ev.Stop != "end" {
-			return
+	notify := func(ev ext.Event) {
+		if shouldNotify(ev) {
+			playSound(e)
 		}
-		playSound(e)
-	})
+	}
+	// Notify when zot needs input and when the model finishes its final reply.
+	// Intermediate tool-use turns, errors, and user aborts remain silent.
+	e.On("tool_confirmation_requested", notify)
+	e.On("turn_end", notify)
 
 	e.OnPanelKey(panelID, func(key, text string) {
 		if key == "enter" {
