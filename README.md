@@ -48,6 +48,18 @@ first launch compiles `main.go` on the fly. Make sure `go` is on your
 | `ding.mp3` | The notification sound. |
 | `config.json` | Persisted on/off state. |
 
+## Landlock LSM / nono.sh
+
+You're likely to run zot inside some sandbox, in case it is Landlock LSM or indirectly via nono.sh, you won't hear the notification sound, because sound playback will be blocked as well.   
+For this case, it's not enough for the extension files to be whitelisted.  
+To figure out what you need to whitelist, run just the play audio command in the CLI via nono, e.g.
+
+~~~
+nono run -v --profile zot --allow-cwd -- paplay ding.mp3
+~~~
+
+and it will show what needs to be whitelisted, e.g. `/run/user/1000/pulse`
+
 ## Credits
 
 Sound Effect by <a href="https://pixabay.com/users/lesiakower-25701529/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=246413">Lesiakower</a> from <a href="https://pixabay.com//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=246413">Pixabay</a>
